@@ -2,26 +2,41 @@ package main
 
 import (
     "fmt"
-    "github.com/julienschmidt/httprouter"
     "net/http"
-    "log"
+    "strings"
+    "io/ioutil"
+    "os"
 )
 
-func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Printf("/")
-    fmt.Fprint(w, "Welcome!\n")
+func getFbShares(url string) (s string) {
+    s = url
+    return
 }
 
-func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Printf("/hello/" + ps.ByName("name"))
-    fmt.Fprintf(w, "hello, %s!\n", ps.ByName("name"))
+func handler(w http.ResponseWriter, r *http.Request) {
+
+    urlParam := strings.Join(r.URL.Query()["url"], "")
+    url := "http://api.facebook.com/restserver.php?method=links.getStats&urls=" + urlParam
+    response, err := http.Get(url)
+
+    if err != nil {
+        fmt.Printf("%s", err)
+        os.Exit(1)
+    } else {
+        defer response.Body.Close()
+        contents, err := ioutil.ReadAll(response.Body)
+        if err != nil {
+            fmt.Printf("%s", err)
+            os.Exit(1)
+        }
+        fmt.Printf("%s\n", string(contents))
+    }
+
+    fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
 
 func main() {
-	fmt.Printf("started server\n")
-    router := httprouter.New()
-    router.GET("/", Index)
-    router.GET("/hello/:name", Hello)
-
-    log.Fatal(http.ListenAndServe(":8080", router))
+    fmt.Print(getFbShares("foobar"))
+    http.HandleFunc("/", handler)
+    http.ListenAndServe(":8080", nil)
 }
